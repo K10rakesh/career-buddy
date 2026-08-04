@@ -11,6 +11,7 @@
   "license": "ISC",
   "description": "Express backend for the Taskly task management application.",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-validator": "^7.3.2",
