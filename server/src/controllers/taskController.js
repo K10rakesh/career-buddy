@@ -2,8 +2,7 @@ const Task = require("../models/Task");
 
 const createTaskController = async (req, res) => {
     try{
-        console.log("Controller reached");
-        const task = new Task(req.body);
+        const task = new Task(req.validatedData);
         await task.save();
         res.status(201).json(task);
     }
