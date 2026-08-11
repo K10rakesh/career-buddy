@@ -10,15 +10,20 @@ const {
 const {createTaskValidator, updateTaskValidator} = require('../validators/task.validator');
 const validationMiddleware = require('../middleware/validation.middleware');
 const authMiddleware = require("../middleware/auth.middleware");
+const {apiLimiter} = require("../middleware/rateLimit.middleware");
 
-router.post("/", authMiddleware, createTaskValidator, validationMiddleware, createTaskController);
+router.use(apiLimiter);
 
-router.get("/", authMiddleware, getTasksController);
+router.use(authMiddleware);
 
-router.get("/:id", authMiddleware, getTaskByIdController);
+router.post("/", createTaskValidator, validationMiddleware, createTaskController);
 
-router.patch("/:id", authMiddleware, updateTaskValidator, validationMiddleware, updateTaskController);
+router.get("/", getTasksController);
 
-router.delete("/:id", authMiddleware, deleteTaskController);
+router.get("/:id", getTaskByIdController);
+
+router.patch("/:id", updateTaskValidator, validationMiddleware, updateTaskController);
+
+router.delete("/:id", deleteTaskController);
 
 module.exports = router; 

@@ -24,6 +24,11 @@ const register = async (req, res) => {
     }
     catch(err){
         console.error(err);
+        if (err.code === 11000){
+            return res.status(409).json({
+                "message": "Email already registered."
+            });
+        }
         res.status(500).json({
             message: "Failed to register user."
         });
@@ -60,6 +65,7 @@ const login = async (req, res) => {
         });
     }
     catch (err){
+        console.error(err);
         res.status(500).json({
             "message": "Login failed."
         })
