@@ -95,8 +95,15 @@ describe("POST /api/auth/register", () => {
 
         expect(response.statusCode).toBe(200);
         expect(response.body.message).toBe("Login successful.");
-        expect(response.body.token).toBeDefined();
-        expect(typeof response.body.token).toBe("string");
+
+        // JWT should no longer be exposed in the response body.
+        expect(response.body.token).toBeUndefined();
+
+        // Authentication cookie should be set.
+        expect(response.headers["set-cookie"]).toBeDefined();
+        expect(response.headers["set-cookie"]).toHaveLength(1);
+        expect(response.headers["set-cookie"][0]).toMatch(/^authToken=/);
+        expect(response.headers["set-cookie"][0]).toMatch(/HttpOnly/);
 
         expect(response.body.user).toBeDefined();
         expect(response.body.user.email).toBe("login@example.com");
@@ -133,6 +140,66 @@ describe("POST /api/auth/register", () => {
 
         expect(response.statusCode).toBe(401);
         expect(response.body.message).toBe("Invalid email or password.");
-});
+    });
+    test("authenticates a user using the authentication cookie", async () => {
+        const agent = request.agent(app);
+
+        await agent
+            .post("/api/auth/register")
+            .send({
+                name: "Test User",
+                email: "cookie@example.com",
+                password: "password123"
+            });
+
+        const loginResponse = await agent
+            .post("/api/auth/login")
+            .send({
+                email: "cookie@example.com",
+                password: "password123"
+            });
+
+        expect(loginResponse.statusCode).toBe(200);
+        expect(loginResponse.headers["set-cookie"]).toBeDefined();
+
+        const response = await agent
+            .get("/api/tasks");
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.tasks).toBeDefined();
+    });
+    test("logs out an authenticated user successfully", async () => {
+        const agent = request.agent(app);
+
+        await agent
+            .post("/api/auth/register")
+            .send({
+                name: "Logout User",
+                email: "logout@example.com",
+                password: "password123"
+            });
+
+        const loginResponse = await agent
+            .post("/api/auth/login")
+            .send({
+                email: "logout@example.com",
+                password: "password123"
+            });
+
+        expect(loginResponse.statusCode).toBe(200);
+        expect(loginResponse.headers["set-cookie"]).toBeDefined();
+
+        const logoutResponse = await agent
+            .post("/api/auth/logout");
+
+        expect(logoutResponse.statusCode).toBe(200);
+        expect(logoutResponse.body.message).toBe("Logout successful.");
+
+        const protectedResponse = await agent
+            .get("/api/tasks");
+
+        expect(protectedResponse.statusCode).toBe(401);
+        expect(protectedResponse.body.message).toBe("Authentication required.");
+    });
 });
 

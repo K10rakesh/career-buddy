@@ -8,9 +8,9 @@
     "test": "jest --runInBand"
   },
   "jest": {
-      "setupFilesAfterEnv": [
-          "<rootDir>/tests/setup.js"
-      ]
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup.js"
+    ]
   },
   "keywords": [],
   "author": "Ketan Rakesh",
@@ -18,6 +18,8 @@
   "description": "Express backend for the Taskly task management application.",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",
