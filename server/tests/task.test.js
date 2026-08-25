@@ -14,20 +14,28 @@ describe("Protected task routes", () => {
     test("rejects request with an invalid token", async () => {
         const response = await request(app)
             .get("/api/tasks")
-            .set("Authorization", "Bearer invalid-token");
+            .set("Cookie", "authToken=invalid-token");
 
         expect(response.statusCode).toBe(401);
         expect(response.body.message).toBe("Invalid or expired token.");
     });
 
     test("allows access with a valid JWT", async () => {
-        const {token} = await createTestUser({
+        const agent = request.agent(app);
+
+        await createTestUser({
             email: "task-user@example.com"
         });
 
-        const response = await request(app)
-            .get("/api/tasks")
-            .set("Authorization", `Bearer ${token}`);
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "task-user@example.com",
+                password: "password123"
+            });
+
+        const response = await agent
+            .get("/api/tasks");
 
         expect(response.statusCode).toBe(200);
         expect(response.body.tasks).toBeDefined();
@@ -35,13 +43,21 @@ describe("Protected task routes", () => {
     });
 
     test("creates a task for an authenticated user", async () => {
-        const {token} = await createTestUser({
+        const agent = request.agent(app);
+
+        await createTestUser({
             email: "create-task@example.com"
         });
 
-        const response = await request(app)
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "create-task@example.com",
+                password: "password123"
+            });
+
+        const response = await agent
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${token}`)
             .send({
                 title: "Learn API testing",
                 description: "Write automated integration tests"
@@ -54,29 +70,35 @@ describe("Protected task routes", () => {
     });
 
     test("retrieves tasks belonging to the authenticated user", async () => {
-        const {token} = await createTestUser({
+        const agent = request.agent(app);
+
+        await createTestUser({
             email: "get-tasks@example.com"
         });
 
-        await request(app)
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "get-tasks@example.com",
+                password: "password123"
+            });
+
+        await agent
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${token}`)
             .send({
                 title: "First task",
                 description: "First description"
             });
 
-        await request(app)
+        await agent
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${token}`)
             .send({
                 title: "Second task",
                 description: "Second description"
             });
 
-        const response = await request(app)
-            .get("/api/tasks")
-            .set("Authorization", `Bearer ${token}`);
+        const response = await agent
+            .get("/api/tasks");
 
         expect(response.statusCode).toBe(200);
         expect(response.body.tasks).toHaveLength(2);
@@ -85,13 +107,21 @@ describe("Protected task routes", () => {
     });
 
     test("retrieves a specific task belonging to the authenticated user", async () => {
-        const {token} = await createTestUser({
+        const agent = request.agent(app);
+
+        await createTestUser({
             email: "single-task@example.com"
         });
 
-        const createResponse = await request(app)
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "single-task@example.com",
+                password: "password123"
+            });
+
+        const createResponse = await agent
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${token}`)
             .send({
                 title: "Find this task",
                 description: "Testing GET by ID"
@@ -99,9 +129,8 @@ describe("Protected task routes", () => {
 
         const taskId = createResponse.body._id;
 
-        const response = await request(app)
-            .get(`/api/tasks/${taskId}`)
-            .set("Authorization", `Bearer ${token}`);
+        const response = await agent
+            .get(`/api/tasks/${taskId}`);
 
         expect(response.statusCode).toBe(200);
         expect(response.body.task._id).toBe(taskId);
@@ -109,13 +138,21 @@ describe("Protected task routes", () => {
     });
 
     test("updates a task belonging to the authenticated user", async () => {
-        const {token} = await createTestUser({
+        const agent = request.agent(app);
+
+        await createTestUser({
             email: "update-task@example.com"
         });
 
-        const createResponse = await request(app)
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "update-task@example.com",
+                password: "password123"
+            });
+
+        const createResponse = await agent
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${token}`)
             .send({
                 title: "Old title",
                 description: "Old description"
@@ -123,9 +160,8 @@ describe("Protected task routes", () => {
 
         const taskId = createResponse.body._id;
 
-        const response = await request(app)
+        const response = await agent
             .patch(`/api/tasks/${taskId}`)
-            .set("Authorization", `Bearer ${token}`)
             .send({
                 title: "Updated title",
                 completed: true
@@ -139,13 +175,21 @@ describe("Protected task routes", () => {
     });
 
     test("deletes a task belonging to the authenticated user", async () => {
-        const {token} = await createTestUser({
+        const agent = request.agent(app);
+
+        await createTestUser({
             email: "delete-task@example.com"
         });
 
-        const createResponse = await request(app)
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "delete-task@example.com",
+                password: "password123"
+            });
+
+        const createResponse = await agent
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${token}`)
             .send({
                 title: "Task to delete",
                 description: "This should be deleted"
@@ -153,35 +197,49 @@ describe("Protected task routes", () => {
 
         const taskId = createResponse.body._id;
 
-        const deleteResponse = await request(app)
-            .delete(`/api/tasks/${taskId}`)
-            .set("Authorization", `Bearer ${token}`);
+        const deleteResponse = await agent
+            .delete(`/api/tasks/${taskId}`);
 
         expect(deleteResponse.statusCode).toBe(200);
         expect(deleteResponse.body.message).toBe("Task successfully deleted.");
 
-        const getResponse = await request(app)
-            .get(`/api/tasks/${taskId}`)
-            .set("Authorization", `Bearer ${token}`);
+        const getResponse = await agent
+            .get(`/api/tasks/${taskId}`);
 
         expect(getResponse.statusCode).toBe(404);
         expect(getResponse.body.message).toBe("Task not found.");
     });
 
     test("prevents a user from accessing another user's task", async () => {
-        const {token: tokenA} = await createTestUser({
+        const agentA = request.agent(app);
+        const agentB = request.agent(app);
+
+        await createTestUser({
             name: "User A",
             email: "user-a@example.com"
         });
 
-        const {token: tokenB} = await createTestUser({
+        await createTestUser({
             name: "User B",
             email: "user-b@example.com"
         });
 
-        const createResponse = await request(app)
+        await agentA
+            .post("/api/auth/login")
+            .send({
+                email: "user-a@example.com",
+                password: "password123"
+            });
+
+        await agentB
+            .post("/api/auth/login")
+            .send({
+                email: "user-b@example.com",
+                password: "password123"
+            });
+
+        const createResponse = await agentB
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${tokenB}`)
             .send({
                 title: "User B's private task",
                 description: "Only User B should access this"
@@ -189,37 +247,51 @@ describe("Protected task routes", () => {
 
         const taskId = createResponse.body._id;
 
-        const response = await request(app)
-            .get(`/api/tasks/${taskId}`)
-            .set("Authorization", `Bearer ${tokenA}`);
+        const response = await agentA
+            .get(`/api/tasks/${taskId}`);
 
         expect(response.statusCode).toBe(404);
         expect(response.body.message).toBe("Task not found.");
     });
 
     test("prevents a user from updating another user's task", async () => {
-        const {token: tokenA} = await createTestUser({
+        const agentA = request.agent(app);
+        const agentB = request.agent(app);
+
+        await createTestUser({
             name: "User A",
             email: "update-a@example.com"
         });
 
-        const {token: tokenB} = await createTestUser({
+        await createTestUser({
             name: "User B",
             email: "update-b@example.com"
         });
 
-        const createResponse = await request(app)
+        await agentA
+            .post("/api/auth/login")
+            .send({
+                email: "update-a@example.com",
+                password: "password123"
+            });
+
+        await agentB
+            .post("/api/auth/login")
+            .send({
+                email: "update-b@example.com",
+                password: "password123"
+            });
+
+        const createResponse = await agentB
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${tokenB}`)
             .send({
                 title: "Original title"
             });
 
         const taskId = createResponse.body._id;
 
-        const response = await request(app)
+        const response = await agentA
             .patch(`/api/tasks/${taskId}`)
-            .set("Authorization", `Bearer ${tokenA}`)
             .send({
                 title: "Hacked title"
             });
@@ -227,70 +299,99 @@ describe("Protected task routes", () => {
         expect(response.statusCode).toBe(404);
         expect(response.body.message).toBe("Task not found.");
 
-        const verifyResponse = await request(app)
-            .get(`/api/tasks/${taskId}`)
-            .set("Authorization", `Bearer ${tokenB}`);
+        const verifyResponse = await agentB
+            .get(`/api/tasks/${taskId}`);
 
         expect(verifyResponse.statusCode).toBe(200);
         expect(verifyResponse.body.task.title).toBe("Original title");
     });
 
     test("prevents a user from deleting another user's task", async () => {
-        const {token: tokenA} = await createTestUser({
+        const agentA = request.agent(app);
+        const agentB = request.agent(app);
+
+        await createTestUser({
             name: "User A",
             email: "delete-a@example.com"
         });
 
-        const {token: tokenB} = await createTestUser({
+        await createTestUser({
             name: "User B",
             email: "delete-b@example.com"
         });
 
-        const createResponse = await request(app)
+        await agentA
+            .post("/api/auth/login")
+            .send({
+                email: "delete-a@example.com",
+                password: "password123"
+            });
+
+        await agentB
+            .post("/api/auth/login")
+            .send({
+                email: "delete-b@example.com",
+                password: "password123"
+            });
+
+        const createResponse = await agentB
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${tokenB}`)
             .send({
                 title: "User B's task"
             });
 
         const taskId = createResponse.body._id;
 
-        const response = await request(app)
-            .delete(`/api/tasks/${taskId}`)
-            .set("Authorization", `Bearer ${tokenA}`);
+        const response = await agentA
+            .delete(`/api/tasks/${taskId}`);
 
         expect(response.statusCode).toBe(404);
         expect(response.body.message).toBe("Task not found.");
 
-        const verifyResponse = await request(app)
-            .get(`/api/tasks/${taskId}`)
-            .set("Authorization", `Bearer ${tokenB}`);
+        const verifyResponse = await agentB
+            .get(`/api/tasks/${taskId}`);
 
         expect(verifyResponse.statusCode).toBe(200);
         expect(verifyResponse.body.task.title).toBe("User B's task");
     });
 
     test("rejects an invalid task ID", async () => {
-        const {token} = await createTestUser({
+        const agent = request.agent(app);
+
+        await createTestUser({
             email: "invalid-id@example.com"
         });
 
-        const response = await request(app)
-            .get("/api/tasks/not-a-valid-id")
-            .set("Authorization", `Bearer ${token}`);
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "invalid-id@example.com",
+                password: "password123"
+            });
+
+        const response = await agent
+            .get("/api/tasks/not-a-valid-id");
 
         expect(response.statusCode).toBe(400);
         expect(response.body.message).toBe("Invalid task ID.");
     });
 
     test("rejects task creation without a title", async () => {
-        const {token} = await createTestUser({
+        const agent = request.agent(app);
+
+        await createTestUser({
             email: "invalid-task@example.com"
         });
 
-        const response = await request(app)
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "invalid-task@example.com",
+                password: "password123"
+            });
+
+        const response = await agent
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${token}`)
             .send({
                 description: "Task without a title"
             });
@@ -300,13 +401,21 @@ describe("Protected task routes", () => {
     });
 
     test("rejects task creation with an unexpected field", async () => {
-        const {token} = await createTestUser({
+        const agent = request.agent(app);
+
+        await createTestUser({
             email: "unexpected-task@example.com"
         });
 
-        const response = await request(app)
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "unexpected-task@example.com",
+                password: "password123"
+            });
+
+        const response = await agent
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${token}`)
             .send({
                 title: "Valid title",
                 admin: true
@@ -316,22 +425,29 @@ describe("Protected task routes", () => {
     });
 
     test("rejects an empty task update", async () => {
-        const {token} = await createTestUser({
+        const agent = request.agent(app);
+
+        await createTestUser({
             email: "empty-update@example.com"
         });
 
-        const createResponse = await request(app)
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "empty-update@example.com",
+                password: "password123"
+            });
+
+        const createResponse = await agent
             .post("/api/tasks")
-            .set("Authorization", `Bearer ${token}`)
             .send({
                 title: "Existing task"
             });
 
         const taskId = createResponse.body._id;
 
-        const response = await request(app)
+        const response = await agent
             .patch(`/api/tasks/${taskId}`)
-            .set("Authorization", `Bearer ${token}`)
             .send({});
 
         expect(response.statusCode).toBe(400);
