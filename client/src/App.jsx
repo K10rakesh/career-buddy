@@ -7,13 +7,18 @@ import DashboardLayout from './layouts/DashboardLayout'
 import TaskBuddy from './pages/TaskBuddy'
 import ProgressBuddy from './pages/ProgressBuddy'
 import OpportunityBuddy from './pages/OpportunityBuddy'
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App(){
   return (
     <Routes>
       <Route path = "/login" element = {<Login/>}/>
       <Route path = "/register" element = {<Register/>}/>
-      <Route path = "/dashboard" element = {<DashboardLayout/>}>
+      <Route path = "/dashboard" element = {
+        <ProtectedRoute>
+          <DashboardLayout/>
+          </ProtectedRoute>
+        }>
         <Route index element = {<Dashboard/>} />
         <Route path = "task-buddy" element = {<TaskBuddy/>} />
         <Route path = "progress-buddy" element = {<ProgressBuddy/>} />
