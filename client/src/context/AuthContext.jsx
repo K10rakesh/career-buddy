@@ -1,7 +1,6 @@
-import {createContext, useState, useContext, useEffect} from "react";
+import {useState, useEffect} from "react";
 import {login as loginApi, getCurrentUser, logout as logoutApi} from "../api/authApi";
-
-const AuthContext = createContext(null);
+import AuthContext from "./AuthContext";
 
 function AuthProvider({children}){
     const [user, setUser] = useState(null);
@@ -35,14 +34,10 @@ function AuthProvider({children}){
     }
 
     return (
-        <AuthContext.Provider value = {{user, loading, login, logout}}>
+        <AuthContext.Provider value={{user, loading, login, logout}}>
             {children}
         </AuthContext.Provider>
     );
 }
 
-function useAuth(){
-    return useContext(AuthContext);
-}
-
-export {AuthProvider, useAuth};
+export default AuthProvider;
