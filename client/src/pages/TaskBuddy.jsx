@@ -1,5 +1,6 @@
 import {useState, useEffect} from "react";
 import {getTasks, createTask, updateTask, deleteTask} from "../api/taskApi";
+import TaskItem from "../components/TaskItem";
 
 function TaskBuddy(){
     const [tasks, setTasks] = useState([]);
@@ -7,12 +8,8 @@ function TaskBuddy(){
     const [error, setError] = useState("");
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [editingTaskId, setEditingTaskId] = useState(null);
-    const [editTitle, setEditTitle] = useState("");
-    const [editDescription, setEditDescription] = useState("");
     const [creating, setCreating] = useState(false);
     const [deletingTaskId, setDeletingTaskId] = useState(null);
-    const [saving, setSaving] = useState(false);
     const [toggleCompleteTaskId, setToggleCompleteTaskId] = useState(null);
 
     async function handleCreateTask(e){
@@ -75,25 +72,13 @@ function TaskBuddy(){
         }
     }
 
-    function handleEditTask(task){
-        setEditingTaskId(task._id);
-        setEditTitle(task.title);
-        setEditDescription(task.description);
-    }
-
-    function handleCancelEdit(){
-        setEditingTaskId(null);
-    }
-
-    async function handleSubmit(e){
-        e.preventDefault();
+    async function handleUpdateTask(id, title, description){
         setError("");
-        setSaving(true);
 
         try{
-            const updatedTask = await updateTask(editingTaskId, {
-                title: editTitle,
-                description: editDescription
+            const updatedTask = await updateTask(id, {
+                title,
+                description
             });
             const updatedTasks = tasks.map((task) => {
                 if (task._id === updatedTask._id){
@@ -102,13 +87,10 @@ function TaskBuddy(){
                 return task;
             });
             setTasks(updatedTasks);
-            setEditingTaskId(null);
         }
         catch (err){
             setError(err.message);
-        }
-        finally{
-            setSaving(false);
+            throw err;
         }
     }
 
@@ -144,29 +126,15 @@ function TaskBuddy(){
             ): (
                 tasks.map((task) => {
                     return (
-                    <div key = {task._id}>
-                        {editingTaskId === task._id? (
-                            <div>
-                                <form onSubmit = {handleSubmit}>
-                                    <input value = {editTitle} type = "text" onChange = {(e) => setEditTitle(e.target.value)} disabled = {saving}/>
-                                    <input type = "text" value = {editDescription} onChange = {(e) => setEditDescription(e.target.value)} disabled = {saving}/>
-                                    <button type = "submit" disabled = {saving}>{saving? "SAVING...": "SAVE"}</button>
-                                </form>
-                                <button onClick = {handleCancelEdit}>CANCEL</button>
-                            </div>
-                        ): (
-                            <div>
-                                <h2>{task.title}</h2>
-                                <p>{task.description}</p>
-                                <button onClick = {() => handleEditTask(task)} disabled = {deletingTaskId === task._id}>EDIT</button>
-                            </div>
-                        )}
-                        <label>
-                            <input type = "checkbox" checked = {task.completed} onChange = {() => handleToggleCompleted(task)} disabled = {toggleCompleteTaskId === task._id || deletingTaskId === task._id}/>
-                            {toggleCompleteTaskId === task._id? "TOGGLING...": "COMPLETED"}
-                        </label>
-                        <button onClick = {() => handleDeleteTask(task._id)} disabled = {deletingTaskId === task._id}>{deletingTaskId === task._id? "DELETING...": "DELETE"}</button>
-                    </div>
+                        <TaskItem 
+                            key = {task._id} 
+                            task = {task} 
+                            onDelete = {handleDeleteTask} 
+                            deletingTaskId = {deletingTaskId}
+                            onToggleCompleted = {handleToggleCompleted}
+                            toggleCompleteTaskId = {toggleCompleteTaskId}
+                            onUpdate = {handleUpdateTask}
+                        />
                     );
                 })
             )
