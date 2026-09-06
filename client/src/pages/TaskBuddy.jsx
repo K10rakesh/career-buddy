@@ -11,6 +11,7 @@ function TaskBuddy(){
     const [creating, setCreating] = useState(false);
     const [deletingTaskId, setDeletingTaskId] = useState(null);
     const [toggleCompleteTaskId, setToggleCompleteTaskId] = useState(null);
+    const [filter, setFilter] = useState("all");
 
     async function handleCreateTask(e){
         e.preventDefault();
@@ -111,6 +112,16 @@ function TaskBuddy(){
         fetchTasks();
     }, []);
 
+    const filteredTasks = tasks.filter((task) => {
+        if (filter === "completed"){
+            return task.completed;
+        }
+        if (filter === "active"){
+            return !task.completed;
+        }
+        return true;
+    })
+
     if (loading){
         return (
             <p>Loading tasks...</p>
@@ -120,11 +131,25 @@ function TaskBuddy(){
     return (
         <div>
             <h1>Task Buddy</h1>
+            <div>
+                <button onClick = {() => setFilter("all")}>
+                    ALL
+                </button>
+                <button onClick = {() => setFilter("active")}>
+                    ACTIVE
+                </button>
+                <button onClick = {() => setFilter("completed")}>
+                    COMPLETED
+                </button>
+            </div>
             {
-            tasks.length === 0 ? (
+            tasks.length === 0? (
                 <p>No tasks yet.</p>
+            ):
+            filteredTasks.length === 0 ? (
+                <p>No tasks match this filter.</p>
             ): (
-                tasks.map((task) => {
+                filteredTasks.map((task) => {
                     return (
                         <TaskItem 
                             key = {task._id} 
