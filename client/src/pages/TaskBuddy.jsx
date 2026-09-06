@@ -12,6 +12,7 @@ function TaskBuddy(){
     const [deletingTaskId, setDeletingTaskId] = useState(null);
     const [toggleCompleteTaskId, setToggleCompleteTaskId] = useState(null);
     const [filter, setFilter] = useState("all");
+    const [searchQuery, setSearchQuery] = useState("");
 
     async function handleCreateTask(e){
         e.preventDefault();
@@ -113,13 +114,18 @@ function TaskBuddy(){
     }, []);
 
     const filteredTasks = tasks.filter((task) => {
-        if (filter === "completed"){
-            return task.completed;
-        }
-        if (filter === "active"){
-            return !task.completed;
-        }
-        return true;
+        const matchesFilter = (
+            (filter === "all") || 
+            (filter === "completed" && task.completed) || 
+            (filter === "active" && !task.completed)
+        );
+
+        const matchesSearch = (
+            task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            task.description.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
+        return matchesFilter && matchesSearch;
     })
 
     if (loading){
@@ -132,6 +138,14 @@ function TaskBuddy(){
         <div>
             <h1>Task Buddy</h1>
             <div>
+                <input 
+                    type = "text" 
+                    placeholder = "search tasks" 
+                    value = {searchQuery} 
+                    onChange = {(e) => setSearchQuery(e.target.value)} 
+                />
+            </div>
+            <div>
                 <button onClick = {() => setFilter("all")}>
                     ALL
                 </button>
@@ -142,12 +156,18 @@ function TaskBuddy(){
                     COMPLETED
                 </button>
             </div>
+            <form onSubmit = {handleCreateTask}>
+                <input type = "text" placeholder = "Please enter title" value = {title} onChange = {(e) => setTitle(e.target.value)} disabled = {creating}/>
+                <input type = "text" placeholder = "Please enter description" value = {description} onChange = {(e) => setDescription(e.target.value)} disabled = {creating}/>
+                {error && <p>{error}</p>}
+                <button type = "submit" disabled = {creating}>{creating? "CREATING...": "CREATE"}</button>
+            </form>
             {
             tasks.length === 0? (
                 <p>No tasks yet.</p>
             ):
             filteredTasks.length === 0 ? (
-                <p>No tasks match this filter.</p>
+                <p>No tasks match this search or filter.</p>
             ): (
                 filteredTasks.map((task) => {
                     return (
@@ -164,12 +184,6 @@ function TaskBuddy(){
                 })
             )
             }
-            <form onSubmit = {handleCreateTask}>
-                <input type = "text" placeholder = "Please enter title" value = {title} onChange = {(e) => setTitle(e.target.value)} disabled = {creating}/>
-                <input type = "text" placeholder = "Please enter description" value = {description} onChange = {(e) => setDescription(e.target.value)} disabled = {creating}/>
-                {error && <p>{error}</p>}
-                <button type = "submit" disabled = {creating}>{creating? "CREATING...": "CREATE"}</button>
-            </form>
         </div>
     );
 }
