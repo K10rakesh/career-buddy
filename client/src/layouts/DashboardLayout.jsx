@@ -17,7 +17,7 @@ function DashboardLayout(){
 
     return (
         <div>
-            <h1>Career Buddy Header</h1>
+            <h1>Career Buddy</h1>
             <button onClick = {handleLogout}>LOGOUT</button>
             <aside>
                 <h1>Sidebar</h1>
