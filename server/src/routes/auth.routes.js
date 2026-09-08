@@ -5,12 +5,13 @@ const {registerValidator, loginValidator} = require('../validators/auth.validato
 const validationMiddleware = require('../middleware/validation.middleware');
 const {authLimiter} = require("../middleware/rateLimit.middleware");
 const authMiddleware = require("../middleware/auth.middleware");
+const allowedFields = require("../middleware/allowedFields.middleware");
 
 router.use(authLimiter);
 
-router.post("/register", registerValidator, validationMiddleware, register);
+router.post("/register", allowedFields(['name', 'email', 'password']), registerValidator, validationMiddleware, register);
 
-router.post("/login", loginValidator, validationMiddleware, login);
+router.post("/login", allowedFields(['email', 'password']), loginValidator, validationMiddleware, login);
 
 router.post("/logout", logout);
 

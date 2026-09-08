@@ -54,6 +54,7 @@ const getTaskByIdController = async (req, res) => {
         });
     }
     catch (err){
+        console.error(err);
         return res.status(500).json({
             "message": "Failed to retrieve task."
         });
@@ -87,6 +88,9 @@ const updateTaskController = async (req, res) => {
         if (req.validatedData.completed !== undefined){
             userTask.completed = req.validatedData.completed;
         }
+        if (req.validatedData.deadline !== undefined){
+            userTask.deadline = req.validatedData.deadline;
+        }
         await userTask.save();
         res.status(200).json({
             "message": "Task updated successfully.",
@@ -94,6 +98,7 @@ const updateTaskController = async (req, res) => {
         });
     }
     catch (err){
+        console.error(err);
         res.status(500).json({
             "message": "Failed to update task."
         });
@@ -121,6 +126,7 @@ const deleteTaskController = async (req, res) => {
         });
     }
     catch (err){
+        console.error(err);
         res.status(500).json({
             "message": "Failed to delete task."
         });
