@@ -451,6 +451,6 @@ describe("Protected task routes", () => {
             .send({});
 
         expect(response.statusCode).toBe(400);
-        expect(response.body.errors).toBeDefined();
+        expect(response.body.message).toBe("At least one field is required.");
     });
 });
