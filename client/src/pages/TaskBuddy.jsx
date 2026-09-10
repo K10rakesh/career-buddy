@@ -13,17 +13,34 @@ function TaskBuddy(){
     const [toggleCompleteTaskId, setToggleCompleteTaskId] = useState(null);
     const [filter, setFilter] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
+    const [deadlineDate, setDeadlineDate] = useState("");
+    const [deadlineTime, setDeadlineTime] = useState("");
 
     async function handleCreateTask(e){
         e.preventDefault();
         setError("");
+
+        const hasDate = deadlineDate !== "";
+        const hasTime = deadlineTime !== "";
+
+        if (hasDate !== hasTime){
+            setError("Please provide both a deadline date and time.");
+            return;
+        }
+
         setCreating(true);
 
         try{
-            const newTask = await createTask(title, description);
+            let deadline = null;
+            if (deadlineDate && deadlineTime){
+                deadline = new Date(`${deadlineDate}T${deadlineTime}`).toISOString();
+            }
+            const newTask = await createTask(title, description, deadline);
             setTasks([...tasks, newTask]);
             setTitle("");
             setDescription("");
+            setDeadlineDate("");
+            setDeadlineTime("");
         }
         catch (err){
             setError(err.message);
@@ -74,13 +91,14 @@ function TaskBuddy(){
         }
     }
 
-    async function handleUpdateTask(id, title, description){
+    async function handleUpdateTask(id, title, description, deadline){
         setError("");
 
         try{
             const updatedTask = await updateTask(id, {
                 title,
-                description
+                description,
+                deadline
             });
             const updatedTasks = tasks.map((task) => {
                 if (task._id === updatedTask._id){
@@ -157,8 +175,32 @@ function TaskBuddy(){
                 </button>
             </div>
             <form onSubmit = {handleCreateTask}>
-                <input type = "text" placeholder = "Please enter title" value = {title} onChange = {(e) => setTitle(e.target.value)} disabled = {creating}/>
-                <input type = "text" placeholder = "Please enter description" value = {description} onChange = {(e) => setDescription(e.target.value)} disabled = {creating}/>
+                <input 
+                    type = "text" 
+                    placeholder = "Please enter title" 
+                    value = {title} 
+                    onChange = {(e) => setTitle(e.target.value)} 
+                    disabled = {creating}
+                />
+                <input 
+                    type = "text" 
+                    placeholder = "Please enter description" 
+                    value = {description} 
+                    onChange = {(e) => setDescription(e.target.value)} 
+                    disabled = {creating}
+                />
+                <input
+                    type = "date"
+                    value = {deadlineDate}
+                    onChange = {(e) => setDeadlineDate(e.target.value)}
+                    disabled = {creating}
+                />
+                <input
+                    type = "time"
+                    value = {deadlineTime}
+                    onChange = {(e) => setDeadlineTime(e.target.value)}
+                    disabled = {creating}
+                />
                 {error && <p>{error}</p>}
                 <button type = "submit" disabled = {creating}>{creating? "CREATING...": "CREATE"}</button>
             </form>
