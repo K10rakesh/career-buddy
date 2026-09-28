@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const createDefaultTags = require("../services/tag.service");
 
 const register = async (req, res) => {
     try{
@@ -11,8 +12,9 @@ const register = async (req, res) => {
                 "message": "Email already registered."
             });
         }
-        const user = new User(req.validatedData);        
+        const user = new User(req.validatedData);
         await user.save();
+        await createDefaultTags(user._id);        
         res.status(201).json({
             "message": "User registered successfully.",
             "user": {

@@ -1,8 +1,24 @@
 const Task = require("../models/Task");
+const Tag = require("../models/Tag");
 const mongoose = require("mongoose");
 
 const createTaskController = async (req, res) => {
     try{
+        if (req.validatedData.tags){
+            const tags = await Tag.find({
+                _id: {$in: req.validatedData.tags},
+                userId: req.userId
+            });
+            const userTagIds = new Set(tags.map((tag) => tag.id));
+            const allTagsBelongToUser = req.validatedData.tags.every(
+                tagId => userTagIds.has(tagId)
+            );
+            if (!allTagsBelongToUser){
+                return res.status(400).json({
+                    message: "One or more tags are invalid."
+                });
+            }
+        }
         const task = new Task({
             ...req.validatedData,
             userId: req.userId
@@ -90,6 +106,30 @@ const updateTaskController = async (req, res) => {
         }
         if (req.validatedData.deadline !== undefined){
             userTask.deadline = req.validatedData.deadline;
+        }
+        if (req.validatedData.priority !== undefined){
+            if (!req.validatedData.priority){
+                userTask.priority = undefined;
+            }
+            else{
+                userTask.priority = req.validatedData.priority;
+            }
+        }
+        if (req.validatedData.tags !== undefined){
+            const tags = await Tag.find({
+                _id: {$in: req.validatedData.tags},
+                userId: req.userId
+            });
+            const userTagIds = new Set(tags.map((tag) => tag.id));
+            const allTagsBelongToUser = req.validatedData.tags.every(
+                tagId => userTagIds.has(tagId)
+            );
+            if (!allTagsBelongToUser){
+                return res.status(400).json({
+                    message: "One or more tags are invalid."
+                });
+            }
+            userTask.tags = req.validatedData.tags;
         }
         await userTask.save();
         res.status(200).json({
