@@ -12,7 +12,11 @@ function TaskBuddy(){
     const [creating, setCreating] = useState(false);
     const [deletingTaskId, setDeletingTaskId] = useState(null);
     const [toggleCompleteTaskId, setToggleCompleteTaskId] = useState(null);
-    const [filter, setFilter] = useState("all");
+    const [filters, setFilters] = useState({
+        status: "all",
+        priority: null,
+        tags: []
+    });
     const [searchQuery, setSearchQuery] = useState("");
     const [deadlineDate, setDeadlineDate] = useState("");
     const [deadlineTime, setDeadlineTime] = useState("");
@@ -21,6 +25,7 @@ function TaskBuddy(){
     const [newTagName, setNewTagName] = useState("");
     const [creatingTag, setCreatingTag] = useState(false);
     const [selectedPriority, setSelectedPriority] = useState(null);
+    const [showFilters, setShowFilters] = useState(false);
 
     async function handleCreateTask(e){
         e.preventDefault();
@@ -178,10 +183,10 @@ function TaskBuddy(){
     }, []);
 
     const filteredTasks = tasks.filter((task) => {
-        const matchesFilter = (
-            (filter === "all") || 
-            (filter === "completed" && task.completed) || 
-            (filter === "active" && !task.completed)
+        const matchesStatus = (
+            (filters.status === "all") || 
+            (filters.status === "completed" && task.completed) || 
+            (filters.status === "active" && !task.completed)
         );
 
         const matchesSearch = (
@@ -189,8 +194,16 @@ function TaskBuddy(){
             task.description.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
-        return matchesFilter && matchesSearch;
-    })
+        const matchesPriority = (
+            filters.priority === null || task.priority === filters.priority
+        );
+
+        const matchesTags = (
+            filters.tags.length === 0 || filters.tags.some((tagId) => task.tags.includes(tagId))
+        );
+
+        return matchesStatus && matchesSearch && matchesPriority && matchesTags;
+    });
 
     if (loading){
         return (
@@ -209,15 +222,144 @@ function TaskBuddy(){
                 />
             </div>
             <div>
-                <button onClick = {() => setFilter("all")}>
-                    ALL
-                </button>
-                <button onClick = {() => setFilter("active")}>
-                    ACTIVE
-                </button>
-                <button onClick = {() => setFilter("completed")}>
-                    COMPLETED
-                </button>
+                <button onClick = {() => setShowFilters(!showFilters)} >FILTER</button>
+                {showFilters && (
+                    <div>
+                        <div>
+                            <p>STATUS</p>
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="status"
+                                    checked={filters.status === "all"}
+                                    onChange={() => {
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            status: "all"
+                                        }));
+                                    }}
+                                />
+                                ALL
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="status"
+                                    checked={filters.status === "active"}
+                                    onChange={() => {
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            status: "active"
+                                        }));
+                                    }}
+                                />
+                                ACTIVE
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="status"
+                                    checked={filters.status === "completed"}
+                                    onChange={() => {
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            status: "completed"
+                                        }));
+                                    }}
+                                />
+                                COMPLETED
+                            </label>
+                        </div>
+                        <div>
+                            <p>PRIORITY</p>
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="priority"
+                                    checked={filters.priority === null}
+                                    onChange={() => {
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            priority: null
+                                        }));
+                                    }}
+                                />
+                                ANY
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="priority"
+                                    checked={filters.priority === "High"}
+                                    onChange={() => {
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            priority: "High"
+                                        }));
+                                    }}
+                                />
+                                HIGH
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="priority"
+                                    checked={filters.priority === "Medium"}
+                                    onChange={() => {
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            priority: "Medium"
+                                        }));
+                                    }}
+                                />
+                                MEDIUM
+                            </label>
+                            <label>
+                                <input
+                                    type="radio"
+                                    name="priority"
+                                    checked={filters.priority === "Low"}
+                                    onChange={() => {
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            priority: "Low"
+                                        }));
+                                    }}
+                                />
+                                LOW
+                            </label>
+                        </div>
+                        <div>
+                            <p>TAGS</p>
+                            {tags.map((tag) => {
+                                return (
+                                    <label key = {tag.id}>
+                                        <input
+                                            type="checkbox"
+                                            name="tags"
+                                            checked={filters.tags.includes(tag.id)}
+                                            onChange={() => {
+                                                if (filters.tags.includes(tag.id)){
+                                                    setFilters((prevFilters) => ({
+                                                        ...prevFilters,
+                                                        tags: prevFilters.tags.filter((tagId) => tagId !== tag.id)
+                                                    }));
+                                                }
+                                                else{
+                                                    setFilters((prevFilters) => ({
+                                                        ...prevFilters,
+                                                        tags: [...prevFilters.tags, tag.id]
+                                                    }));
+                                                }
+                                            }}
+                                        />
+                                        {tag.name}
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
             </div>
             <form onSubmit = {handleCreateTask}>
                 <input 
