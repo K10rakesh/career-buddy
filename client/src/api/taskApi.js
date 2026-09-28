@@ -16,7 +16,7 @@ async function getTasks(){
     return data;
 }
 
-async function createTask(title, description, deadline){
+async function createTask(title, description, deadline, tags, priority){
     const res = await fetch(TASK_URL, {
         method: "POST",
         credentials: "include",
@@ -26,7 +26,9 @@ async function createTask(title, description, deadline){
         body: JSON.stringify({
             title,
             description,
-            deadline
+            deadline, 
+            tags,
+            priority
         })
     });
 

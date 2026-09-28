@@ -1,6 +1,7 @@
 import {useState, useEffect} from "react";
 import {getTasks, createTask, updateTask, deleteTask} from "../api/taskApi";
 import TaskItem from "../components/TaskItem";
+import {getTags, createTag} from "../api/tagApi";
 
 function TaskBuddy(){
     const [tasks, setTasks] = useState([]);
@@ -15,6 +16,11 @@ function TaskBuddy(){
     const [searchQuery, setSearchQuery] = useState("");
     const [deadlineDate, setDeadlineDate] = useState("");
     const [deadlineTime, setDeadlineTime] = useState("");
+    const [tags, setTags] = useState([]);
+    const [selectedTags, setSelectedTags] = useState([]);
+    const [newTagName, setNewTagName] = useState("");
+    const [creatingTag, setCreatingTag] = useState(false);
+    const [selectedPriority, setSelectedPriority] = useState(null);
 
     async function handleCreateTask(e){
         e.preventDefault();
@@ -35,12 +41,14 @@ function TaskBuddy(){
             if (deadlineDate && deadlineTime){
                 deadline = new Date(`${deadlineDate}T${deadlineTime}`).toISOString();
             }
-            const newTask = await createTask(title, description, deadline);
-            setTasks([...tasks, newTask]);
+            const newTask = await createTask(title, description, deadline, selectedTags, selectedPriority);
+            setTasks((prevTasks) => [...prevTasks, newTask]);
             setTitle("");
             setDescription("");
             setDeadlineDate("");
             setDeadlineTime("");
+            setSelectedPriority(null);
+            setSelectedTags([]);
         }
         catch (err){
             setError(err.message);
@@ -91,14 +99,16 @@ function TaskBuddy(){
         }
     }
 
-    async function handleUpdateTask(id, title, description, deadline){
+    async function handleUpdateTask(id, title, description, deadline, tags, priority){
         setError("");
 
         try{
             const updatedTask = await updateTask(id, {
                 title,
                 description,
-                deadline
+                deadline,
+                tags,
+                priority
             });
             const updatedTasks = tasks.map((task) => {
                 if (task._id === updatedTask._id){
@@ -111,6 +121,30 @@ function TaskBuddy(){
         catch (err){
             setError(err.message);
             throw err;
+        }
+    }
+
+    async function handleCreateTag(e){
+        e.preventDefault();
+        setError("");
+
+        if (!newTagName.trim()){
+            setError("Tag name cannot be empty.");
+            return;
+        }
+
+        setCreatingTag(true);
+
+        try{
+            const newTag = await createTag(newTagName.trim());
+            setTags((prevTags) => [...prevTags, newTag]);
+            setNewTagName("");
+        }
+        catch (err){
+            setError(err.message);
+        }
+        finally{
+            setCreatingTag(false);
         }
     }
 
@@ -128,7 +162,19 @@ function TaskBuddy(){
             }
         }
 
+        async function fetchTags(){
+            try{
+                const data = await getTags();
+                setTags(data.tags);
+            }
+            catch (err){
+                console.error("Tag fetch error:", err);
+                setError(err.message);
+            }
+        }
+
         fetchTasks();
+        fetchTags();
     }, []);
 
     const filteredTasks = tasks.filter((task) => {
@@ -151,7 +197,6 @@ function TaskBuddy(){
             <p>Loading tasks...</p>
         );
     }
-
     return (
         <div>
             <h1>Task Buddy</h1>
@@ -201,8 +246,82 @@ function TaskBuddy(){
                     onChange = {(e) => setDeadlineTime(e.target.value)}
                     disabled = {creating}
                 />
+                <div>
+                    <p>Tags:</p>
+                    {tags.map((tag) => (
+                        <label key = {tag.id}>
+                            <input 
+                                type = "checkbox" 
+                                value = {tag.id} 
+                                onChange = {(e) => {
+                                    if (selectedTags.includes(e.target.value)){
+                                        setSelectedTags(selectedTags.filter((id) => id !== e.target.value));
+                                    }
+                                    else{
+                                        setSelectedTags([...selectedTags, e.target.value]);
+                                    }
+                                }}
+                                checked = {selectedTags.includes(tag.id)} 
+                            />
+                            {tag.name}
+                        </label>
+                    ))}
+                </div>
+                <div>
+                    <p>Priority:</p>
+
+                    <label>
+                        <input
+                            type="radio"
+                            value="High"
+                            checked={selectedPriority === "High"}
+                            onChange={(e) => setSelectedPriority(e.target.value)}
+                        />
+                        High
+                    </label>
+
+                    <label>
+                        <input
+                            type="radio"
+                            value="Medium"
+                            checked={selectedPriority === "Medium"}
+                            onChange={(e) => setSelectedPriority(e.target.value)}
+                        />
+                        Medium
+                    </label>
+
+                    <label>
+                        <input
+                            type="radio"
+                            value="Low"
+                            checked={selectedPriority === "Low"}
+                            onChange={(e) => setSelectedPriority(e.target.value)}
+                        />
+                        Low
+                    </label>
+
+                    <label>
+                        <input
+                            type="radio"
+                            value=""
+                            checked={selectedPriority === null}
+                            onChange={() => setSelectedPriority(null)}
+                        />
+                        None
+                    </label>
+                </div>
                 {error && <p>{error}</p>}
-                <button type = "submit" disabled = {creating}>{creating? "CREATING...": "CREATE"}</button>
+                <button type = "submit" disabled = {creating}>{creating? "CREATING TASK...": "CREATE"}</button>
+            </form>
+            <form onSubmit = {handleCreateTag}>
+                    <input 
+                        type = "text" 
+                        placeholder = "New tag name" 
+                        value = {newTagName} 
+                        onChange = {(e) => setNewTagName(e.target.value)} 
+                        disabled = {creatingTag}
+                    />
+                    <button type = "submit" disabled = {creatingTag}>{creatingTag? "CREATING TAG...": "CREATE"}</button>
             </form>
             {
             tasks.length === 0? (
@@ -221,6 +340,7 @@ function TaskBuddy(){
                             onToggleCompleted = {handleToggleCompleted}
                             toggleCompleteTaskId = {toggleCompleteTaskId}
                             onUpdate = {handleUpdateTask}
+                            tags = {tags}
                         />
                     );
                 })
