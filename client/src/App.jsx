@@ -1,7 +1,7 @@
 import {Routes, Route} from 'react-router-dom'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import NotFound from './pages/NotFound'
+import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import DashboardLayout from './layouts/DashboardLayout'
 import TaskBuddy from './pages/TaskBuddy'
@@ -24,7 +24,7 @@ function App(){
         <Route path = "progress-buddy" element = {<ProgressBuddy/>} />
         <Route path = "opportunity-buddy" element = {<OpportunityBuddy/>} />
       </Route>
-      <Route path = "*" element = {<NotFound/>}/>
+      <Route path = "*" element = {<Home/>}/>
     </Routes>
   );
 }

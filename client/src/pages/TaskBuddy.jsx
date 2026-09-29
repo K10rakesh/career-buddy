@@ -26,6 +26,7 @@ function TaskBuddy(){
     const [creatingTag, setCreatingTag] = useState(false);
     const [selectedPriority, setSelectedPriority] = useState(null);
     const [showFilters, setShowFilters] = useState(false);
+    const [sortBy, setSortBy] = useState("default");
 
     async function handleCreateTask(e){
         e.preventDefault();
@@ -205,6 +206,95 @@ function TaskBuddy(){
         return matchesStatus && matchesSearch && matchesPriority && matchesTags;
     });
 
+    const sortedTasks = [...filteredTasks];
+    const mappedPriority = {Low: 1, Medium: 2, High: 3};
+    if (sortBy === "newest"){
+        sortedTasks.sort((task1, task2) => {
+            const time1 = new Date(task1.createdAt).getTime();
+            const time2 = new Date(task2.createdAt).getTime();
+            return time2 - time1;
+        });
+    }
+    else if (sortBy === "oldest"){
+        sortedTasks.sort((task1, task2) => {
+            const time1 = new Date(task1.createdAt).getTime();
+            const time2 = new Date(task2.createdAt).getTime();
+            return time1 - time2;
+        });
+    }
+    else if (sortBy === "deadlineAsc"){
+        sortedTasks.sort((task1, task2) => {
+            const hasDeadline1 = task1.deadline !== null;
+            const hasDeadline2 = task2.deadline !== null;
+            if (hasDeadline1 && hasDeadline2){
+                const time1 = new Date(task1.deadline).getTime();
+                const time2 = new Date(task2.deadline).getTime();
+                return time1 - time2;
+            }
+            if (hasDeadline1){
+                return -1;
+            }
+            if (hasDeadline2){
+                return 1;
+            }
+            return 0;
+        });
+    }
+    else if (sortBy === "deadlineDesc"){
+        sortedTasks.sort((task1, task2) => {
+            const hasDeadline1 = task1.deadline !== null;
+            const hasDeadline2 = task2.deadline !== null;
+            if (hasDeadline1 && hasDeadline2){
+                const time1 = new Date(task1.deadline).getTime();
+                const time2 = new Date(task2.deadline).getTime();
+                return time2 - time1;
+            }
+            if (hasDeadline1){
+                return 1;
+            }
+            if (hasDeadline2){
+                return -1;
+            }
+            return 0;
+        });
+    }
+    else if (sortBy === "priorityAsc"){
+        sortedTasks.sort((task1, task2) => {
+            const hasPriority1 = task1.priority !== null;
+            const hasPriority2 = task2.priority !== null;
+            if (hasPriority1 && hasPriority2){
+                const priority1 = mappedPriority[task1.priority];
+                const priority2 = mappedPriority[task2.priority];
+                return priority1 - priority2;
+            }
+            if (hasPriority1){
+                return -1;
+            }
+            if (hasPriority2){
+                return 1;
+            }
+            return 0;
+        });
+    }
+    else if (sortBy === "priorityDesc"){
+        sortedTasks.sort((task1, task2) => {
+            const hasPriority1 = task1.priority !== null;
+            const hasPriority2 = task2.priority !== null;
+            if (hasPriority1 && hasPriority2){
+                const priority1 = mappedPriority[task1.priority];
+                const priority2 = mappedPriority[task2.priority];
+                return priority2 - priority1;
+            }
+            if (hasPriority1){
+                return 1;
+            }
+            if (hasPriority2){
+                return -1;
+            }
+            return 0;
+        });
+    }
+
     if (loading){
         return (
             <p>Loading tasks...</p>
@@ -358,6 +448,18 @@ function TaskBuddy(){
                                 );
                             })}
                         </div>
+                        <select 
+                            value = {sortBy}
+                            onChange = {(e) => setSortBy(e.target.value)}
+                        >
+                            <option value="default">Default</option>
+                            <option value="newest">Newest first</option>
+                            <option value="oldest">Oldest first</option>
+                            <option value="deadlineAsc">Deadline: Earliest first</option>
+                            <option value="deadlineDesc">Deadline: Latest first</option>
+                            <option value="priorityDesc">Priority: High → Low</option>
+                            <option value="priorityAsc">Priority: Low → High</option>
+                        </select>
                     </div>
                 )}
             </div>
@@ -469,10 +571,10 @@ function TaskBuddy(){
             tasks.length === 0? (
                 <p>No tasks yet.</p>
             ):
-            filteredTasks.length === 0 ? (
+            sortedTasks.length === 0 ? (
                 <p>No tasks match this search or filter.</p>
             ): (
-                filteredTasks.map((task) => {
+                sortedTasks.map((task) => {
                     return (
                         <TaskItem 
                             key = {task._id} 
