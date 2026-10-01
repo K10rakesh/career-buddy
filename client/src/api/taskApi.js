@@ -17,19 +17,24 @@ async function getTasks(){
 }
 
 async function createTask(title, description, deadline, tags, priority){
+    const body = {
+        title,
+        description,
+        deadline,
+        tags
+    };
+
+    if (priority !== null){
+        body.priority = priority;
+    }
+
     const res = await fetch(TASK_URL, {
         method: "POST",
         credentials: "include",
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-            title,
-            description,
-            deadline, 
-            tags,
-            priority
-        })
+        body: JSON.stringify(body)
     });
 
     const data = await res.json();
