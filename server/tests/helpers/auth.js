@@ -22,7 +22,6 @@ const createTestUser = async ({
         });
 
     return {
-        token: loginResponse.body.token,
         user: loginResponse.body.user
     };
 };

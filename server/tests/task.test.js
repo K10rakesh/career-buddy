@@ -69,6 +69,146 @@ describe("Protected task routes", () => {
         expect(response.body.completed).toBe(false);
     });
 
+    test("creates a task with a priority", async () => {
+        const agent = request.agent(app);
+
+        await createTestUser({
+            email: "priority-task@example.com"
+        });
+
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "priority-task@example.com",
+                password: "password123"
+            });
+
+        const response = await agent
+            .post("/api/tasks")
+            .send({
+                title: "High priority task",
+                description: "Complete this task first",
+                priority: "High"
+            });
+
+        expect(response.statusCode).toBe(201);
+        expect(response.body.priority).toBe("High");
+    });
+
+    test("rejects a task with an invalid priority", async () => {
+        const agent = request.agent(app);
+
+        await createTestUser({
+            email: "invalid-priority@example.com"
+        });
+
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "invalid-priority@example.com",
+                password: "password123"
+            });
+
+        const response = await agent
+            .post("/api/tasks")
+            .send({
+                title: "Invalid priority task",
+                priority: "Urgent"
+            });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.errors).toBeDefined();
+    });
+
+    test("creates a task without a priority", async () => {
+        const agent = request.agent(app);
+
+        await createTestUser({
+            email: "no-priority@example.com"
+        });
+
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "no-priority@example.com",
+                password: "password123"
+            });
+
+        const response = await agent
+            .post("/api/tasks")
+            .send({
+                title: "No priority task",
+                description: "This task has no priority"
+            });
+
+        expect(response.statusCode).toBe(201);
+        expect(response.body.priority).toBeUndefined();
+    });
+
+    test("creates a task with a deadline", async () => {
+        const agent = request.agent(app);
+
+        await createTestUser({
+            email: "deadline-task@example.com"
+        });
+
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "deadline-task@example.com",
+                password: "password123"
+            });
+
+        const deadline = "2026-12-31T18:30:00.000Z";
+
+        const response = await agent
+            .post("/api/tasks")
+            .send({
+                title: "Deadline task",
+                description: "Task with a deadline",
+                deadline
+            });
+
+        expect(response.statusCode).toBe(201);
+        expect(new Date(response.body.deadline).toISOString()).toBe(deadline);
+    });
+
+    test("creates a task with tags", async () => {
+        const agent = request.agent(app);
+
+        await createTestUser({
+            email: "tagged-task@example.com"
+        });
+
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "tagged-task@example.com",
+                password: "password123"
+            });
+
+        const tagResponse = await agent
+            .post("/api/tags")
+            .send({
+                name: "Programming"
+            });
+
+        expect(tagResponse.statusCode).toBe(201);
+
+        const tagId = tagResponse.body.tag.id;
+
+        const response = await agent
+            .post("/api/tasks")
+            .send({
+                title: "Tagged task",
+                description: "Task with a tag",
+                tags: [tagId]
+            });
+
+        expect(response.statusCode).toBe(201);
+        expect(response.body.tags).toContain(tagId);
+    });
+
     test("retrieves tasks belonging to the authenticated user", async () => {
         const agent = request.agent(app);
 
@@ -172,6 +312,42 @@ describe("Protected task routes", () => {
         expect(response.body.task.title).toBe("Updated title");
         expect(response.body.task.description).toBe("Old description");
         expect(response.body.task.completed).toBe(true);
+    });
+
+    test("updates a task's priority and deadline", async () => {
+        const agent = request.agent(app);
+
+        await createTestUser({
+            email: "update-fields@example.com"
+        });
+
+        await agent
+            .post("/api/auth/login")
+            .send({
+                email: "update-fields@example.com",
+                password: "password123"
+            });
+
+        const createResponse = await agent
+            .post("/api/tasks")
+            .send({
+                title: "Task",
+                description: "Task description"
+            });
+
+        const taskId = createResponse.body._id;
+        const deadline = "2026-12-31T18:30:00.000Z";
+
+        const response = await agent
+            .patch(`/api/tasks/${taskId}`)
+            .send({
+                priority: "Medium",
+                deadline
+            });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.task.priority).toBe("Medium");
+        expect(new Date(response.body.task.deadline).toISOString()).toBe(deadline);
     });
 
     test("deletes a task belonging to the authenticated user", async () => {

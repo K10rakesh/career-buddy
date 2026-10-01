@@ -1,7 +1,8 @@
 import {useState, useEffect} from "react";
 import {getTasks, createTask, updateTask, deleteTask} from "../api/taskApi";
 import TaskItem from "../components/TaskItem";
-import {getTags, createTag} from "../api/tagApi";
+import {getTags, createTag, updateTag, deleteTag} from "../api/tagApi";
+import TagManager from "../components/TagManager"
 
 function TaskBuddy(){
     const [tasks, setTasks] = useState([]);
@@ -22,8 +23,6 @@ function TaskBuddy(){
     const [deadlineTime, setDeadlineTime] = useState("");
     const [tags, setTags] = useState([]);
     const [selectedTags, setSelectedTags] = useState([]);
-    const [newTagName, setNewTagName] = useState("");
-    const [creatingTag, setCreatingTag] = useState(false);
     const [selectedPriority, setSelectedPriority] = useState(null);
     const [showFilters, setShowFilters] = useState(false);
     const [sortBy, setSortBy] = useState("default");
@@ -130,28 +129,28 @@ function TaskBuddy(){
         }
     }
 
-    async function handleCreateTag(e){
-        e.preventDefault();
+    async function handleCreateTag(name){
+        const newTag = await createTag(name);
+        setTags((prevTags) => [...prevTags, newTag]);
+    }
+
+    async function handleUpdateTag(id, name){
         setError("");
+        const updatedTag = await updateTag(id, name);
+        const updatedTags = tags.map((tag) => {
+            if (tag.id === updatedTag.id){
+                return updatedTag;
+            }
+            return tag;
+        });
+        setTags(updatedTags);
+    }
 
-        if (!newTagName.trim()){
-            setError("Tag name cannot be empty.");
-            return;
-        }
-
-        setCreatingTag(true);
-
-        try{
-            const newTag = await createTag(newTagName.trim());
-            setTags((prevTags) => [...prevTags, newTag]);
-            setNewTagName("");
-        }
-        catch (err){
-            setError(err.message);
-        }
-        finally{
-            setCreatingTag(false);
-        }
+    async function handleDeleteTag(id){
+        setError("");
+        await deleteTag(id);
+        const remainingTags = tags.filter((tag) => tag.id !== id);
+        setTags(remainingTags);
     }
 
     useEffect(() => {
@@ -557,16 +556,12 @@ function TaskBuddy(){
                 {error && <p>{error}</p>}
                 <button type = "submit" disabled = {creating}>{creating? "CREATING TASK...": "CREATE"}</button>
             </form>
-            <form onSubmit = {handleCreateTag}>
-                    <input 
-                        type = "text" 
-                        placeholder = "New tag name" 
-                        value = {newTagName} 
-                        onChange = {(e) => setNewTagName(e.target.value)} 
-                        disabled = {creatingTag}
-                    />
-                    <button type = "submit" disabled = {creatingTag}>{creatingTag? "CREATING TAG...": "CREATE"}</button>
-            </form>
+            <TagManager
+                tags={tags}
+                onCreate={handleCreateTag}
+                onUpdate = {handleUpdateTag}
+                onDelete = {handleDeleteTag}
+            />
             {
             tasks.length === 0? (
                 <p>No tasks yet.</p>

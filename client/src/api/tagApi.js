@@ -37,4 +37,38 @@ async function createTag(name){
     return data.tag;
 }
 
-export {getTags, createTag};
+async function updateTag(id, name){
+    const res = await fetch(`${TAG_URL}/${id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({name})
+    });
+
+    const data = await res.json();
+
+    if (!res.ok){
+        throw new Error(data.message || "Failed to update tag.");
+    }
+
+    return data.tag;
+}
+
+async function deleteTag(id){
+    const res = await fetch(`${TAG_URL}/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+    });
+
+    const data = await res.json();
+
+    if (!res.ok){
+        throw new Error(data.message || "Failed to delete tag.");
+    }
+
+    return data;
+}
+
+export {getTags, createTag, updateTag, deleteTag};
